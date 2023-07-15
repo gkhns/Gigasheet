@@ -1,0 +1,65 @@
+pip install simple_salesforce
+
+from simple_salesforce import Salesforce
+import requests
+import pandas as pd
+from io import StringIO
+
+sf = Salesforce(username='REDACTED',password='REDACTED', security_token='REDACTED')
+
+#Your Salesforce Instance URL
+sf_instance = 'https://gigasheet-dev-ed.my.salesforce.com/' 
+
+# add report id
+reportId = '00O4x000005op7lEAA'
+
+sf_URL = f'{sf_instance}{reportId}?isdtp=p1&export=1&enc=UTF-8&xf=csv'
+
+response = requests.get(sf_URL, headers=sf.headers, cookies={'sid': sf.session_id})
+sf_report = response.content.decode('utf-8')
+data_frame = pd.read_csv(StringIO(sf_report))
+
+#To replace NaN values 
+data_frame = data_frame.fillna('')
+
+#Gigasheet Handle
+sheet_handle ='825683d3_937e_4155_a156_08b1b253684c'
+
+for index, row in data_frame.iterrows():
+  url = f"https://api.gigasheet.com/dataset/{sheet_handle}/append"
+
+  payload = { "records": [
+      {
+          "B": row['First Name'],
+          "C": row['Last Name'],
+          "D": row['Title'],
+          "E": row['Company / Account'],
+          "F": row['Email'],
+          "G": row['Lead Source'],
+          "H": row['Street'],
+          "I": row['Rating'],
+          "J": row['Lead Owner'],
+          "K": row['Lead ID'],
+          "L": row['Universe'],
+          "M": row['Testing Category'],
+          "N": row['Salutation'],
+          "O": row['Description'],
+          "P": row['Industry'],
+          "Q": row['Street Line 1'],
+          "R": row['City'],
+          "S": row['State/Province'],
+          "T": row['Zip/Postal Code'],
+          "U": row['Country'],
+          "V": row['Phone'],
+          "W": row['Email Bounced Reason'],
+          "X": row['Email Bounced Date']
+          }
+      ] }
+
+  headers = {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "X-GIGASHEET-TOKEN": "REDACTED"
+      }
+
+  response = requests.post(url, json=payload, headers=headers)
